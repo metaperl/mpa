@@ -236,7 +236,6 @@ class Entry(object):
 
     def browser_visit(self, action_label):
         try:
-            self.browser.driver.set_page_load_timeout(30)
             print("Visiting URL for {0}".format(action_label))
             self.browser.visit(url_for_action(action_label))
         except TimeoutException:
@@ -405,8 +404,11 @@ def main(conf,
         time.sleep(random.randrange(1, 5) * one_minute)
 
     with Browser() as browser:
+
         browser.driver.set_window_size(1200, 1100)
         browser.driver.set_window_position(620, 0)
+        browser.driver.set_page_load_timeout(30)
+
         e = Entry(username, password, browser)
 
         e.login()
