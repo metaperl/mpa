@@ -105,8 +105,10 @@ def wait_visible(driver, locator, by=By.XPATH, timeout=30):
     """
     try:
         if ui.WebDriverWait(driver, timeout).until(EC.visibility_of_element_located((by, locator))):
+            logging.info("Found element.")
             return driver.find_element(by, locator)
     except TimeoutException:
+        logging.info("TimeoutException in wait_visible.")
         return False
 
 
@@ -214,23 +216,21 @@ class Entry(object):
 
         self.browser_visit('login')
 
-        self.browser.find_by_name('user_name').type(self._username)
-        self.browser.find_by_name('password').type(self._password)
+        self.browser.find_by_name('user_name').first.type(self._username)
+        self.browser.find_by_name('password').first.type(self._password)
 
-        self.browser.find_by_xpath("//input[@value='LOGIN']").click()
+        self.browser.find_by_xpath("//input[@value='LOGIN']").first.click()
 
 
-        clicked = False
-        while not clicked:
-            print("Waiting for login ad...")
-            link_elem = wait_visible(self.browser.driver, "//a[@title='Close']", timeout=30)
-            print("link elem={0}".format(link_elem))
-            if link_elem:
-                time.sleep(1)
-                link_elem.click()
-                clicked = True
-            else:
-                clicked = False
+        logging.info("Waiting for login ad...")
+
+        link_elem = wait_visible(self.browser.driver, "//input[@name='skipad']", timeout=60)
+        if link_elem:
+            print("Skip ad found.")
+            link_elem.click()
+        else:
+            print("Logging in again.")
+            self.login()
 
         logging.info("Login complete.")
 
@@ -308,16 +308,29 @@ class Entry(object):
 
     def get_balance(self):
 
-        e = self.browser.find_by_xpath('//*[@id="rightbar"]/table/tbody/tr[2]/td/table/tbody/tr[5]/td[2]')
-        e_text = e.text
-        balance = float(e.text[1:])
-        return balance
+        account_balance_elem = wait_visible(self.browser.driver, "rightbar", by=By.ID)
+        account_balance_html = get_outer_html(self.browser.driver, account_balance_elem)
+        account_balance_text = html2text.HTML2Text().handle(account_balance_html)
+
+        floating_point_regexp = re.compile('\d+\.\d+')
+        floats = [Decimal(f) for f in floating_point_regexp.findall(account_balance_text)]
+        cash, repurchase = floats[10:12]
+        self._balance = dict(
+            cash=cash, repurchase=repurchase
+        )
+        pp = pprint.PrettyPrinter(indent=4)
+        pp.pprint(self._balance)
+
 
     def buy_pack(self, pack_value=3):
         self.browser_visit('buy_pack')
         balance = self.get_balance()
 
-        packs_to_buy = int(balance / pack_value)
+        total_balance = self._balance['cash'] + self._balance['repurchase']
+
+        packs_to_buy = int(total_balance / pack_value)
+
+        logging.info("Buying {0} packs of value {1}".format(packs_to_buy, pack_value))
 
         pack_value_to_index = {
             1: 0,
@@ -339,7 +352,9 @@ class Entry(object):
         form = buy_form[pack_value_to_index[pack_value]]
         pack_input = "{0}\t\t ".format(packs_to_buy)
         form.find_by_id('position').type(pack_input)
-        self.browser.find_by_id('paynow').click()
+        button = wait_visible(self.browser.driver, 'paynow', By.ID)
+        button.click()
+#        self.browser.find_by_id('paynow').first.click()
 
     def calc_account_balance(self):
         time.sleep(1)
@@ -393,7 +408,7 @@ class Entry(object):
 
 def main(conf,
          surf=False, buy_pack=False, stay_up=False,
-         pack_value=3, surf_amount=10, random_delay=False
+         pack_value=5, surf_amount=10, random_delay=False
          ):
     config = ConfigParser.ConfigParser()
     config.read(conf)
@@ -403,10 +418,10 @@ def main(conf,
     if random_delay:
         time.sleep(random.randrange(1, 5) * one_minute)
 
-    with Browser() as browser:
+    with Browser('chrome') as browser:
 
         browser.driver.set_window_size(1200, 1100)
-        browser.driver.set_window_position(620, 0)
+        browser.driver.set_window_position(600, 0)
         browser.driver.set_page_load_timeout(30)
 
         e = Entry(username, password, browser)

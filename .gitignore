@@ -3,6 +3,7 @@ __pycache__/
 *.py[cod]
 
 login.ini
+login.old
 
 # C extensions
 *.so
