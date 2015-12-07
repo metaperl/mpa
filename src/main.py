@@ -217,9 +217,9 @@ class Entry(object):
         self.browser_visit('login')
 
         self.browser.find_by_name('user_name').first.type(self._username)
-        self.browser.find_by_name('password').first.type(self._password)
-
-        self.browser.find_by_xpath("//input[@value='LOGIN']").first.click()
+        self.browser.find_by_name('password').first.type(
+            "{0}\t\n".format(self._password))
+        # self.browser.find_by_xpath("//input[@value='LOGIN']").first.click()
 
 
         logging.info("Waiting for login ad...")
