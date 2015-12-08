@@ -268,7 +268,7 @@ class Entry(object):
     def view_ad(self):
         self.browser_visit('view_ads')
         ads = self.browser.find_by_xpath('//a[@class="bannerlink"]')
-        print(ads)
+        # print(ads)
         ads[3].click()
         self.browser.driver.switch_to_window(self.browser.driver.window_handles[-1])
         elem = wait_visible(self.browser.driver, '//div[@class="counter-text"]')
@@ -312,15 +312,23 @@ class Entry(object):
         account_balance_html = get_outer_html(self.browser.driver, account_balance_elem)
         account_balance_text = html2text.HTML2Text().handle(account_balance_html)
 
-        floating_point_regexp = re.compile('\d+\.\d+')
-        floats = [Decimal(f) for f in floating_point_regexp.findall(account_balance_text)]
-        cash, repurchase = floats[10:12]
+        # dollar amount samples:
+        # $4.28
+        # $0
+        # no known samples for something like 28 cents. Not sure if it is
+        # $0.28 or $.28
+        floating_point_regexp = re.compile('\$(\d+(\.\d+)?)')
+        floats = [Decimal(f[0]) for f in floating_point_regexp.findall(account_balance_text)]
+        cash, repurchase = floats[20:22]
         self._balance = dict(
             cash=cash, repurchase=repurchase
         )
         pp = pprint.PrettyPrinter(indent=4)
         pp.pprint(self._balance)
 
+    def exhaustive_buy(self):
+        for pack_value in (5,3,1):
+            self.buy_pack(pack_value)
 
     def buy_pack(self, pack_value=3):
         self.browser_visit('buy_pack')
@@ -353,7 +361,8 @@ class Entry(object):
         pack_input = "{0}\t\t ".format(packs_to_buy)
         form.find_by_id('position').type(pack_input)
         button = wait_visible(self.browser.driver, 'paynow', By.ID)
-        button.click()
+        if button:
+            button.click()
 #        self.browser.find_by_id('paynow').first.click()
 
     def calc_account_balance(self):
@@ -407,7 +416,7 @@ class Entry(object):
 
 
 def main(conf,
-         surf=False, buy_pack=False, stay_up=False,
+         surf=False, buy_pack=False, exhaustive_buy=False, stay_up=False,
          pack_value=5, surf_amount=10, random_delay=False
          ):
     config = ConfigParser.ConfigParser()
@@ -427,6 +436,9 @@ def main(conf,
         e = Entry(username, password, browser)
 
         e.login()
+
+        if exhaustive_buy:
+            e.exhaustive_buy()
 
         if buy_pack:
             e.buy_pack(pack_value)
