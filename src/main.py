@@ -206,10 +206,11 @@ def bounding_box_screenshot(driver, bounding_box, filename):
 
 
 class Entry(object):
-    def __init__(self, username, password, browser):
+    def __init__(self, username, password, browser, pack_value):
         self._username = username
         self._password = password
         self.browser = browser
+        self._pack_value = pack_value
 
     def login(self):
         print("Logging in...")
@@ -253,7 +254,6 @@ class Entry(object):
 
     def view_ads(self, surf_amount):
         logging.warn("Visiting viewads")
-
 
         for i in xrange(1, surf_amount + 1):
             while True:
@@ -327,10 +327,13 @@ class Entry(object):
         pp.pprint(self._balance)
 
     def exhaustive_buy(self):
-        for pack_value in (5,3,1):
+        pack_values = [1, 3, 5, 7, 10, 15, 20, 30, 40, 50]
+        pack_values.reverse()
+        for pack_value in pack_values[pack_values.index(self._pack_value)::]:
             self.buy_pack(pack_value)
 
-    def buy_pack(self, pack_value=3):
+    def buy_pack(self, pack_value):
+
         self.browser_visit('buy_pack')
         balance = self.get_balance()
 
@@ -427,13 +430,13 @@ def main(conf,
     if random_delay:
         time.sleep(random.randrange(1, 5) * one_minute)
 
-    with Browser('chrome') as browser:
+    with Browser() as browser:
 
         browser.driver.set_window_size(1200, 1100)
         browser.driver.set_window_position(600, 0)
         browser.driver.set_page_load_timeout(30)
 
-        e = Entry(username, password, browser)
+        e = Entry(username, password, browser, pack_value)
 
         e.login()
 
