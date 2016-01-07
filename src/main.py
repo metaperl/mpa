@@ -366,7 +366,10 @@ class Entry(object):
         button = wait_visible(self.browser.driver, 'paynow', By.ID)
         if button:
             button.click()
-#        self.browser.find_by_id('paynow').first.click()
+        time.sleep(2)
+        f = self.browser.find_by_xpath("//div[@class='disputbox1']")
+        buttons = f.find_by_id('paynow')
+        buttons.first.click()
 
     def calc_account_balance(self):
         time.sleep(1)
@@ -420,7 +423,7 @@ class Entry(object):
 
 def main(conf,
          surf=False, buy_pack=False, exhaustive_buy=False, stay_up=False,
-         pack_value=5, surf_amount=10, random_delay=False
+         pack_value=7, surf_amount=10, random_delay=False
          ):
     config = ConfigParser.ConfigParser()
     config.read(conf)
